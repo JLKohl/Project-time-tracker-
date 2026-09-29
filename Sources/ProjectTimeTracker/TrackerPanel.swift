@@ -150,37 +150,10 @@ struct TrackerPanel: View {
 
     private func totals(_ summary: ProjectSummary) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text(summary.project.name)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                Spacer()
-                if !isEditing {
-                    Button(hasTargets(summary.project) ? "Edit targets" : "Set targets") {
-                        beginEditingTargets(summary.project)
-                    }
-                    .buttonStyle(.borderless)
-                    .font(.caption)
-
-                    Button {
-                        renameText = summary.project.name
-                        renaming = true
-                    } label: {
-                        Image(systemName: "pencil")
-                    }
-                    .buttonStyle(.borderless)
-                    .font(.caption)
-                    .help("Rename this project")
-
-                    Button { confirmingDelete = true } label: {
-                        Image(systemName: "trash")
-                    }
-                    .buttonStyle(.borderless)
-                    .font(.caption)
-                    .help("Delete this project")
-                }
-            }
+            Text(summary.project.name)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
 
             HStack(alignment: .top, spacing: 8) {
                 total("Today", summary.dayTotal,
@@ -192,6 +165,10 @@ struct TrackerPanel: View {
                       progress: summary.weekProgress,
                       remaining: summary.weekRemaining)
                 total("All time", summary.allTimeTotal)
+            }
+
+            if !isEditing {
+                projectActions(summary.project)
             }
 
             if editingTargets {
@@ -273,6 +250,32 @@ struct TrackerPanel: View {
         }
     }
 
+    /// Labelled buttons for everything you can do to the project shown.
+    private func projectActions(_ project: Project) -> some View {
+        HStack(spacing: 6) {
+            Button("Edit Times") {
+                SessionsWindowController.shared.show(project: project, model: model)
+            }
+            .help("Fix start and end times, delete a stretch of time, or add time you forgot to track")
+
+            Button("Targets") {
+                beginEditingTargets(project)
+            }
+            .help("Set hours per day or per week to aim for")
+
+            Button("Rename") {
+                renameText = project.name
+                renaming = true
+            }
+
+            Button("Delete") { confirmingDelete = true }
+                .foregroundStyle(.red)
+        }
+        .buttonStyle(.bordered)
+        .controlSize(.small)
+        .font(.caption)
+    }
+
     private func renameEditor(_ project: Project) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             TextField("New name", text: $renameText)
@@ -316,10 +319,6 @@ struct TrackerPanel: View {
         }
         .padding(10)
         .background(RoundedRectangle(cornerRadius: 8).fill(Color.red.opacity(0.1)))
-    }
-
-    private func hasTargets(_ project: Project) -> Bool {
-        project.dailyTarget != nil || project.weeklyTarget != nil
     }
 
     private func beginEditingTargets(_ project: Project) {

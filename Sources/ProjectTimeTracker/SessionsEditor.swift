@@ -1,14 +1,60 @@
+import AppKit
 import SwiftUI
 import TimeTrackerCore
+
+/// Shows the times editor in its own window, for opening it from the menu bar panel.
+@MainActor
+final class SessionsWindowController {
+    static let shared = SessionsWindowController()
+
+    private var window: NSWindow?
+
+    func show(project: Project, model: TrackerViewModel) {
+        window?.close()
+        model.clearError()
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 580, height: 440),
+            styleMask: [.titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "Edit Times"
+        window.isReleasedWhenClosed = false
+        window.contentViewController = NSHostingController(
+            rootView: SessionsEditor(model: model, project: project, weekContaining: Date()) { [weak window] in
+                window?.close()
+            }
+        )
+        window.center()
+        self.window = window
+        NSApp.activate(ignoringOtherApps: true)
+        window.makeKeyAndOrderFront(nil)
+    }
+}
 
 /// Lists one project's sessions for a week and lets the user change their times,
 /// delete them, or add a session that wasn't tracked.
 struct SessionsEditor: View {
     @ObservedObject var model: TrackerViewModel
     let project: Project
-    let week: DateInterval
+    /// Called when the user clicks Done.
+    let onDone: () -> Void
 
-    @Environment(\.dismiss) private var dismiss
+    /// Any date inside the week being shown.
+    @State private var shownDate: Date
+
+    init(model: TrackerViewModel, project: Project, weekContaining date: Date, onDone: @escaping () -> Void) {
+        self.model = model
+        self.project = project
+        self.onDone = onDone
+        _shownDate = State(initialValue: date)
+    }
+
+    private var week: DateInterval { model.weekInterval(containing: shownDate) }
+
+    private var isCurrentWeek: Bool {
+        model.calendar.isDate(shownDate, equalTo: model.now, toGranularity: .weekOfYear)
+    }
 
     private enum Editing: Equatable {
         case existing(UUID)
@@ -25,16 +71,29 @@ struct SessionsEditor: View {
         let sessions = model.sessions(for: project, in: week)
 
         VStack(alignment: .leading, spacing: 12) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Sessions for \(project.name)")
-                    .font(.headline)
-                Text(weekText)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+            HStack(spacing: 10) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Times for \(project.name)")
+                        .font(.headline)
+                    Text(weekText)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Button { move(weeks: -1) } label: { Image(systemName: "chevron.left") }
+                    .help("Previous week")
+                    .disabled(editing != nil)
+                Button { move(weeks: 1) } label: { Image(systemName: "chevron.right") }
+                    .help("Next week")
+                    .disabled(editing != nil || isCurrentWeek)
             }
 
+            Text("Each row is one stretch of time from Start to Stop. Click Edit to change its times.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
             if sessions.isEmpty && editing != Editing.new {
-                Text("No sessions this week.")
+                Text("No time tracked this week. Use the arrows to see other weeks, or click Add Time.")
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
@@ -64,7 +123,7 @@ struct SessionsEditor: View {
 
             HStack {
                 Button(action: beginAdding) {
-                    Label("Add Session", systemImage: "plus")
+                    Label("Add Time", systemImage: "plus")
                 }
                 .disabled(editing != nil)
                 .help("Add time you worked without running the timer")
@@ -73,7 +132,7 @@ struct SessionsEditor: View {
 
                 Button("Done") {
                     model.clearError()
-                    dismiss()
+                    onDone()
                 }
                 .keyboardShortcut(editing == nil ? KeyboardShortcut.defaultAction : nil)
                 .disabled(editing != nil)
@@ -119,7 +178,7 @@ struct SessionsEditor: View {
                 }
                 .buttonStyle(.borderless)
                 .disabled(editing != nil)
-                .help("Delete this session")
+                .help("Delete this time")
             }
         }
     }
@@ -138,7 +197,7 @@ struct SessionsEditor: View {
     /// `session` is nil when adding a new one.
     private func editor(for session: TimeEntry?) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(session == nil ? "New session" : "Edit session")
+            Text(session == nil ? "Add time" : "Change times")
                 .font(.caption.weight(.semibold))
 
             Grid(alignment: .leading, horizontalSpacing: 10, verticalSpacing: 8) {
@@ -223,6 +282,11 @@ struct SessionsEditor: View {
         if saved { editing = nil }
     }
 
+    private func move(weeks: Int) {
+        deletingID = nil
+        shownDate = model.date(shownDate, movedByWeeks: weeks)
+    }
+
     private func minuteRounded(_ date: Date) -> Date {
         Date(timeIntervalSinceReferenceDate: (date.timeIntervalSinceReferenceDate / 60).rounded(.down) * 60)
     }
@@ -233,6 +297,7 @@ struct SessionsEditor: View {
         formatter.dateStyle = .medium
         formatter.timeStyle = .none
         let lastDay = week.end.addingTimeInterval(-1)
-        return "Week of " + formatter.string(from: week.start, to: lastDay)
+        let range = formatter.string(from: week.start, to: lastDay)
+        return isCurrentWeek ? "This week · \(range)" : range
     }
 }

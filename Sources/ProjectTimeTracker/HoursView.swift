@@ -86,7 +86,7 @@ struct HoursView: View {
                         .font(.caption)
                         .foregroundStyle(.red)
                 }
-                Text("Right-click a project to edit its sessions, rename it or delete it. Projects with no time this week are hidden unless you untick the box above.")
+                Text("Use a project's Edit button to fix its times, rename it or delete it. Projects with no time this week are hidden unless you untick the box above.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -94,7 +94,9 @@ struct HoursView: View {
         .padding(20)
         .frame(minWidth: 820, minHeight: 320, alignment: .topLeading)
         .sheet(item: $sessionsProject) { project in
-            SessionsEditor(model: model, project: project, week: model.weekInterval(containing: shownDate))
+            SessionsEditor(model: model, project: project, weekContaining: shownDate) {
+                sessionsProject = nil
+            }
         }
         .alert(
             "Delete “\(projectToDelete?.name ?? "")”?",
@@ -189,6 +191,7 @@ struct HoursView: View {
                 }
                 Text("Week")
                 Text("All time")
+                Text("")
             }
             .font(.caption.weight(.semibold))
             .foregroundStyle(.secondary)
@@ -204,23 +207,34 @@ struct HoursView: View {
                     weekCell(row.summary)
                     Text(DurationFormat.compact(row.summary.allTimeTotal))
                         .foregroundStyle(.secondary)
+                    editMenu(row.summary.project)
                 }
                 .monospacedDigit()
                 .contentShape(Rectangle())
-                .contextMenu {
-                    Button("Edit Sessions…") {
-                        model.clearError()
-                        sessionsProject = row.summary.project
-                    }
-                    Button("Rename Project…") {
-                        renameText = row.summary.project.name
-                        projectToRename = row.summary.project
-                    }
-                    Button("Delete Project…", role: .destructive) {
-                        projectToDelete = row.summary.project
-                    }
-                }
+                .contextMenu { editMenuItems(row.summary.project) }
             }
+        }
+    }
+
+    /// A visible Edit button on each row, with the same choices as right-clicking.
+    private func editMenu(_ project: Project) -> some View {
+        Menu("Edit") { editMenuItems(project) }
+            .fixedSize()
+            .help("Edit times, rename or delete this project")
+    }
+
+    @ViewBuilder
+    private func editMenuItems(_ project: Project) -> some View {
+        Button("Edit Times…") {
+            model.clearError()
+            sessionsProject = project
+        }
+        Button("Rename Project…") {
+            renameText = project.name
+            projectToRename = project
+        }
+        Button("Delete Project…", role: .destructive) {
+            projectToDelete = project
         }
     }
 

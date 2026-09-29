@@ -2,6 +2,8 @@ import Foundation
 
 public enum TimeTrackerError: Error, Equatable {
     case emptyProjectName
+    /// Another project already has this name (the associated value is its name).
+    case duplicateProjectName(String)
 }
 
 /// Starts and stops timers and answers "how much time did I spend?" questions.
@@ -81,6 +83,19 @@ public final class TimeTracker {
         guard let index = data.projects.firstIndex(where: { $0.id == projectID }) else { return }
         data.projects[index].dailyTarget = daily.flatMap { $0 > 0 ? $0 : nil }
         data.projects[index].weeklyTarget = weekly.flatMap { $0 > 0 ? $0 : nil }
+        try store.save(data)
+    }
+
+    /// Gives a project a new name. Its time and targets are kept.
+    /// Changing only the capitals of its own name is allowed; taking another project's name is not.
+    public func renameProject(withID projectID: UUID, to newName: String) throws {
+        let trimmed = newName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { throw TimeTrackerError.emptyProjectName }
+        guard let index = data.projects.firstIndex(where: { $0.id == projectID }) else { return }
+        if let existing = findProject(named: trimmed), existing.id != projectID {
+            throw TimeTrackerError.duplicateProjectName(existing.name)
+        }
+        data.projects[index].name = trimmed
         try store.save(data)
     }
 

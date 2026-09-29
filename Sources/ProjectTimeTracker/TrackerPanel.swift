@@ -10,6 +10,11 @@ struct TrackerPanel: View {
     @State private var dailyTargetText = ""
     @State private var weeklyTargetText = ""
     @State private var confirmingDelete = false
+    @State private var renaming = false
+    @State private var renameText = ""
+
+    /// True while one of the inline editors (targets, rename, delete) is open.
+    private var isEditing: Bool { editingTargets || confirmingDelete || renaming }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -36,7 +41,7 @@ struct TrackerPanel: View {
             .controlSize(.large)
             // The name box handles Return itself; only let Return press this button when no box is showing,
             // so one key press can never both start and stop the timer.
-            .keyboardShortcut(model.isRunning && !editingTargets && !confirmingDelete ? KeyboardShortcut.defaultAction : nil)
+            .keyboardShortcut(model.isRunning && !isEditing ? KeyboardShortcut.defaultAction : nil)
 
             if let error = model.errorMessage {
                 Text(error)
@@ -114,12 +119,22 @@ struct TrackerPanel: View {
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                 Spacer()
-                if !editingTargets && !confirmingDelete {
+                if !isEditing {
                     Button(hasTargets(summary.project) ? "Edit targets" : "Set targets") {
                         beginEditingTargets(summary.project)
                     }
                     .buttonStyle(.borderless)
                     .font(.caption)
+
+                    Button {
+                        renameText = summary.project.name
+                        renaming = true
+                    } label: {
+                        Image(systemName: "pencil")
+                    }
+                    .buttonStyle(.borderless)
+                    .font(.caption)
+                    .help("Rename this project")
 
                     Button { confirmingDelete = true } label: {
                         Image(systemName: "trash")
@@ -146,6 +161,10 @@ struct TrackerPanel: View {
                 targetEditor(summary.project)
             }
 
+            if renaming {
+                renameEditor(summary.project)
+            }
+
             if confirmingDelete {
                 deleteConfirmation(summary)
             }
@@ -154,6 +173,7 @@ struct TrackerPanel: View {
         .onChange(of: summary.project.id) { _ in
             editingTargets = false
             confirmingDelete = false
+            renaming = false
         }
     }
 
@@ -213,6 +233,27 @@ struct TrackerPanel: View {
                 Button("Save") { saveTargets(project) }
             }
             .controlSize(.small)
+        }
+    }
+
+    private func renameEditor(_ project: Project) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            TextField("New name", text: $renameText)
+                .textFieldStyle(.roundedBorder)
+                .onSubmit { saveRename(project) }
+            HStack {
+                Spacer()
+                Button("Cancel") { renaming = false }
+                    .keyboardShortcut(.cancelAction)
+                Button("Rename") { saveRename(project) }
+            }
+            .controlSize(.small)
+        }
+    }
+
+    private func saveRename(_ project: Project) {
+        if model.renameProject(project, to: renameText) {
+            renaming = false
         }
     }
 

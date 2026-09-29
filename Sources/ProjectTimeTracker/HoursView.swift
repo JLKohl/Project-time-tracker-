@@ -40,6 +40,9 @@ struct HoursView: View {
     @AppStorage("hideEmptyProjects") private var hideEmpty = true
     /// The project waiting for the user to confirm deletion.
     @State private var projectToDelete: Project?
+    /// The project being renamed, and the name typed so far.
+    @State private var projectToRename: Project?
+    @State private var renameText = ""
 
     private var isCurrentWeek: Bool {
         model.calendar.isDate(shownDate, equalTo: model.now, toGranularity: .weekOfYear)
@@ -50,6 +53,16 @@ struct HoursView: View {
 
         VStack(alignment: .leading, spacing: 16) {
             header(report)
+                .alert(
+                    "Rename “\(projectToRename?.name ?? "")”",
+                    isPresented: Binding(get: { projectToRename != nil }, set: { if !$0 { projectToRename = nil } })
+                ) {
+                    TextField("New name", text: $renameText)
+                    Button("Rename") {
+                        if let project = projectToRename { model.renameProject(project, to: renameText) }
+                    }
+                    Button("Cancel", role: .cancel) {}
+                }
 
             if report.rows.isEmpty {
                 Spacer()
@@ -62,7 +75,12 @@ struct HoursView: View {
                     table(report)
                         .padding(.bottom, 8)
                 }
-                Text("Right-click a project to delete it. Projects with no time this week are hidden unless you untick the box above.")
+                if let error = model.errorMessage {
+                    Text(error)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                }
+                Text("Right-click a project to rename or delete it. Projects with no time this week are hidden unless you untick the box above.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -150,6 +168,10 @@ struct HoursView: View {
                 .monospacedDigit()
                 .contentShape(Rectangle())
                 .contextMenu {
+                    Button("Rename Project…") {
+                        renameText = row.summary.project.name
+                        projectToRename = row.summary.project
+                    }
                     Button("Delete Project…", role: .destructive) {
                         projectToDelete = row.summary.project
                     }

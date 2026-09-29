@@ -298,6 +298,41 @@ final class TimeTrackerTests: XCTestCase {
         XCTAssertNil(data.projects.first?.dailyTarget)
     }
 
+    func testRenameProjectKeepsItsTime() throws {
+        try tracker.start(projectNamed: "Webiste")
+        clock.advance(hours: 1)
+        let id = try XCTUnwrap(tracker.runningProject).id
+        try tracker.setTargets(for: id, daily: 3600, weekly: nil)
+
+        try tracker.renameProject(withID: id, to: "  Website ")
+
+        XCTAssertEqual(tracker.project(withID: id)?.name, "Website")
+        XCTAssertEqual(tracker.findProject(named: "website")?.id, id)
+        XCTAssertNil(tracker.findProject(named: "Webiste"))
+        XCTAssertEqual(tracker.totalTime(for: id), 3600)
+        XCTAssertEqual(tracker.project(withID: id)?.dailyTarget, 3600)
+        XCTAssertEqual(tracker.runningProject?.id, id)
+        XCTAssertEqual(try makeTracker().project(withID: id)?.name, "Website")
+
+        // Changing only the capitals is fine.
+        try tracker.renameProject(withID: id, to: "WEBSITE")
+        XCTAssertEqual(tracker.project(withID: id)?.name, "WEBSITE")
+    }
+
+    func testRenameRejectsEmptyAndDuplicateNames() throws {
+        try tracker.start(projectNamed: "Website")
+        try tracker.start(projectNamed: "Blog")
+        let blog = try XCTUnwrap(tracker.runningProject)
+
+        XCTAssertThrowsError(try tracker.renameProject(withID: blog.id, to: "  ")) { error in
+            XCTAssertEqual(error as? TimeTrackerError, .emptyProjectName)
+        }
+        XCTAssertThrowsError(try tracker.renameProject(withID: blog.id, to: "website")) { error in
+            XCTAssertEqual(error as? TimeTrackerError, .duplicateProjectName("Website"))
+        }
+        XCTAssertEqual(tracker.project(withID: blog.id)?.name, "Blog")
+    }
+
     func testDeleteProjectRemovesItsTime() throws {
         try tracker.start(projectNamed: "Keep")
         clock.advance(hours: 1)

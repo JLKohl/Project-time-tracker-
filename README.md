@@ -28,6 +28,7 @@ A small Mac app that lives in your menu bar. Type a project name, click **Start*
 - Below the button you see how much time that project has had **today**, **this week**, and **all time**. Under an hour it shows minutes and seconds (e.g. `4m 12s`) so you can see it counting.
 - Click **Set targets** to give a project a goal per day and/or per week (type `2`, `1.5`, `1:30` or `1h 30m`; leave empty for none). Today and This week then show a progress bar and how much time is left, or "Target met ✓".
 - Click **All hours…** in the panel for the hours window: every project with its time on each day Sunday–Saturday, its week total (with a progress bar if it has a weekly target) and its all-time total. Use the arrows to look back at earlier weeks. A day turns green once that day's target is met, and a green dot marks the project that's running.
+- To rename a project, click the ✏️ pencil icon next to **Set targets** in the panel, or right-click it in the hours window and choose **Rename Project…**. Its time and targets stay with it.
 - To delete a project, click the 🗑 trash icon next to **Set targets** in the panel (for the project that's running or typed in the name box), or right-click it in the hours window and choose **Delete Project…**. After you confirm, the project and all its tracked time are removed for good.
 - Typing a project name that already exists (ignoring capitals and extra spaces) adds time to that project. A new name creates a new project.
 - Only one timer runs at a time. Starting a different project stops the current one.

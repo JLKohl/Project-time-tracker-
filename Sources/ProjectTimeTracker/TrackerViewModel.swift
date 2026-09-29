@@ -82,6 +82,18 @@ final class TrackerViewModel: ObservableObject {
         tracker.date(date, movedByWeeks: weeks)
     }
 
+    /// Renames a project. Returns `false` (and shows a message) if the name is empty or taken.
+    @discardableResult
+    func renameProject(_ project: Project, to newName: String) -> Bool {
+        let isInNameBox = tracker.findProject(named: projectName)?.id == project.id
+        perform { try tracker.renameProject(withID: project.id, to: newName) }
+        guard errorMessage == nil else { return false }
+        if isInNameBox, let renamed = tracker.project(withID: project.id) {
+            projectName = renamed.name
+        }
+        return true
+    }
+
     /// Permanently deletes a project and all its tracked time.
     func deleteProject(_ project: Project) {
         let isInNameBox = tracker.findProject(named: projectName)?.id == project.id
@@ -110,6 +122,8 @@ final class TrackerViewModel: ObservableObject {
             errorMessage = nil
         } catch TimeTrackerError.emptyProjectName {
             errorMessage = "Type a project name first."
+        } catch TimeTrackerError.duplicateProjectName(let name) {
+            errorMessage = "There's already a project called “\(name)”."
         } catch {
             errorMessage = "Couldn't save: \(error.localizedDescription)"
         }

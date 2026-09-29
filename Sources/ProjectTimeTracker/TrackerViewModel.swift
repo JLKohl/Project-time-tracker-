@@ -16,12 +16,16 @@ final class TrackerViewModel: ObservableObject {
     private var ticker: AnyCancellable?
 
     init() {
+        // Weeks run Sunday to Saturday.
+        var calendar = Calendar.current
+        calendar.firstWeekday = 1
+
         do {
-            tracker = try TimeTracker(store: JSONFileStore())
+            tracker = try TimeTracker(store: JSONFileStore(), calendar: calendar)
             storageWarning = nil
         } catch {
             // Don't overwrite a file we couldn't read. Keep it and work in memory instead.
-            tracker = try! TimeTracker(store: InMemoryStore())
+            tracker = try! TimeTracker(store: InMemoryStore(), calendar: calendar)
             storageWarning = "Couldn't read saved data at \(JSONFileStore.defaultFileURL.path). "
                 + "Nothing will be saved until this is fixed."
         }

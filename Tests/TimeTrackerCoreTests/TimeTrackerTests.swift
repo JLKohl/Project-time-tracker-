@@ -176,6 +176,26 @@ final class TimeTrackerTests: XCTestCase {
         XCTAssertEqual(tracker.recentProjects(limit: 1).map(\.name), ["Old"])
     }
 
+    func testSundayStartWeek() throws {
+        var sundayCalendar = calendar
+        sundayCalendar.firstWeekday = 1
+        let clock = self.clock!
+        let sundayTracker = try TimeTracker(store: InMemoryStore(), calendar: sundayCalendar, now: { clock.now })
+
+        // Saturday 11pm to Sunday 1am: 1 hour in each week.
+        clock.set("2026-09-26T23:00:00Z")
+        try sundayTracker.start(projectNamed: "Website")
+        clock.advance(hours: 2)
+        try sundayTracker.stop()
+
+        let id = try XCTUnwrap(sundayTracker.findProject(named: "Website")).id
+        let week = sundayTracker.weekInterval(containing: clock.now)
+        XCTAssertEqual(week.start, TestClock.date("2026-09-27T00:00:00Z")) // Sunday
+        XCTAssertEqual(sundayTracker.weekTime(for: id, weekContaining: clock.now), 3600)
+        XCTAssertEqual(sundayTracker.weekTime(for: id, weekContaining: TestClock.date("2026-09-26T12:00:00Z")), 3600)
+        XCTAssertEqual(sundayTracker.dailyBreakdown(for: id, weekContaining: clock.now).first?.day, week.start)
+    }
+
     func testSummariesSortedByThisWeek() throws {
         try tracker.start(projectNamed: "Small")
         clock.advance(hours: 1)

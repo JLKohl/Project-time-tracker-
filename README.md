@@ -30,7 +30,7 @@ A small Mac app that lives in your menu bar. Type a project name, click **Start*
 - Typing a project name that already exists (ignoring capitals and extra spaces) adds time to that project. A new name creates a new project.
 - Only one timer runs at a time. Starting a different project stops the current one.
 - Every Start and Stop is saved right away to `~/Library/Application Support/ProjectTimeTracker/data.json`. If the Mac restarts while a timer is running, it keeps counting when you reopen the app.
-- Days run midnight to midnight, and weeks follow your Mac's region setting (Sunday or Monday start). A session that runs past midnight is split between the two days (and weeks).
+- Days run midnight to midnight, and weeks run Sunday to Saturday. A session that runs past midnight is split between the two days (and weeks).
 
 ## Trying it on your Mac
 

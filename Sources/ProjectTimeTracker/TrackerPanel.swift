@@ -150,14 +150,16 @@ struct TrackerPanel: View {
 
     private func totals(_ summary: ProjectSummary) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            if !isEditing {
-                projectActions(summary.project)
+            HStack(spacing: 8) {
+                Text(summary.project.name)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                Spacer()
+                if !isEditing {
+                    projectActions(summary.project)
+                }
             }
-
-            Text(summary.project.name)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
 
             HStack(alignment: .top, spacing: 8) {
                 total("Today", summary.dayTotal,
@@ -250,30 +252,37 @@ struct TrackerPanel: View {
         }
     }
 
-    /// Labelled buttons for everything you can do to the project shown.
+    /// A Targets button and a pencil menu with the other things you can do to the project.
     private func projectActions(_ project: Project) -> some View {
-        HStack(spacing: 6) {
-            Button("Edit Times") {
-                SessionsWindowController.shared.show(project: project, model: model)
-            }
-            .help("Fix start and end times, delete a stretch of time, or add time you forgot to track")
-
+        HStack(spacing: 8) {
             Button("Targets") {
                 beginEditingTargets(project)
             }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .font(.caption)
             .help("Set hours per day or per week to aim for")
 
-            Button("Rename") {
-                renameText = project.name
-                renaming = true
+            Menu {
+                Button("Edit Times…") {
+                    SessionsWindowController.shared.show(project: project, model: model)
+                }
+                Button("Rename…") {
+                    renameText = project.name
+                    renaming = true
+                }
+                Divider()
+                Button("Delete…", role: .destructive) {
+                    confirmingDelete = true
+                }
+            } label: {
+                Image(systemName: "pencil")
             }
-
-            Button("Delete") { confirmingDelete = true }
-                .foregroundStyle(.red)
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.visible)
+            .fixedSize()
+            .help("Edit times, rename or delete this project")
         }
-        .buttonStyle(.bordered)
-        .controlSize(.small)
-        .font(.caption)
     }
 
     private func renameEditor(_ project: Project) -> some View {

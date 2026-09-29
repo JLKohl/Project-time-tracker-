@@ -19,7 +19,7 @@ A small Mac app that lives in your menu bar. Type a project name, click **Start*
 | 2 | The widget: menu bar icon with a project name box, Start/Stop button, live timer and today/week/all-time totals | ✅ tried out |
 | 2b | Fixes from trying it, plus target hours: set hours per day and/or week for a project and see a progress bar and time left | ✅ approved |
 | 3 | Hours view: every project with a day-by-day breakdown of the week, week and all-time totals, previous/next week buttons | ✅ approved (combined totals removed) |
-| 4 | Packaging: build a double-clickable `.app`, optional launch at login, install guide | 🔍 ready for review |
+| 4 | Packaging: build a double-clickable `.app`, optional launch at login, install guide | ✅ approved |
 
 ## What it does
 

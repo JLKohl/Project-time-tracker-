@@ -298,6 +298,27 @@ final class TimeTrackerTests: XCTestCase {
         XCTAssertNil(data.projects.first?.dailyTarget)
     }
 
+    func testDeleteProjectRemovesItsTime() throws {
+        try tracker.start(projectNamed: "Keep")
+        clock.advance(hours: 1)
+        try tracker.start(projectNamed: "Delete me")
+        clock.advance(hours: 1)
+        let doomed = try XCTUnwrap(tracker.runningProject)
+
+        try tracker.deleteProject(withID: doomed.id)
+
+        XCTAssertEqual(tracker.projects.map(\.name), ["Keep"])
+        XCTAssertNil(tracker.runningEntry) // its running timer went with it
+        XCTAssertTrue(tracker.data.entries.allSatisfy { $0.projectID != doomed.id })
+        let keep = try XCTUnwrap(tracker.findProject(named: "Keep"))
+        XCTAssertEqual(tracker.totalTime(for: keep.id), 3600)
+
+        // Saved, and the name can be used again for a fresh project.
+        XCTAssertNil(try makeTracker().findProject(named: "Delete me"))
+        try tracker.start(projectNamed: "Delete me")
+        XCTAssertNotEqual(tracker.runningProject?.id, doomed.id)
+    }
+
     func testRunningTimerSurvivesRestart() throws {
         try tracker.start(projectNamed: "Website")
         clock.advance(hours: 1)

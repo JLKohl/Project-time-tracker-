@@ -84,6 +84,15 @@ public final class TimeTracker {
         try store.save(data)
     }
 
+    /// Permanently removes a project and all of its tracked time,
+    /// including a timer that's running for it.
+    public func deleteProject(withID projectID: UUID) throws {
+        guard data.projects.contains(where: { $0.id == projectID }) else { return }
+        data.projects.removeAll { $0.id == projectID }
+        data.entries.removeAll { $0.projectID == projectID }
+        try store.save(data)
+    }
+
     /// Projects ordered by when they were last worked on, most recent first.
     public func recentProjects(limit: Int = 5) -> [Project] {
         var lastUsed: [UUID: Date] = [:]

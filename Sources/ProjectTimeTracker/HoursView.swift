@@ -38,6 +38,8 @@ struct HoursView: View {
     /// Any date inside the week being shown.
     @State private var shownDate = Date()
     @AppStorage("hideEmptyProjects") private var hideEmpty = true
+    /// The project waiting for the user to confirm deletion.
+    @State private var projectToDelete: Project?
 
     private var isCurrentWeek: Bool {
         model.calendar.isDate(shownDate, equalTo: model.now, toGranularity: .weekOfYear)
@@ -60,10 +62,24 @@ struct HoursView: View {
                     table(report)
                         .padding(.bottom, 8)
                 }
+                Text("Right-click a project to delete it. Projects with no time this week are hidden unless you untick the box above.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
         }
         .padding(20)
         .frame(minWidth: 820, minHeight: 320, alignment: .topLeading)
+        .alert(
+            "Delete “\(projectToDelete?.name ?? "")”?",
+            isPresented: Binding(get: { projectToDelete != nil }, set: { if !$0 { projectToDelete = nil } }),
+            presenting: projectToDelete
+        ) { project in
+            Button("Delete", role: .destructive) { model.deleteProject(project) }
+            Button("Cancel", role: .cancel) {}
+        } message: { project in
+            Text("This permanently removes the project and all \(DurationFormat.compact(model.totalTime(for: project))) "
+                 + "of time tracked on it. This can't be undone.")
+        }
     }
 
     // MARK: - Header
@@ -132,6 +148,12 @@ struct HoursView: View {
                         .foregroundStyle(.secondary)
                 }
                 .monospacedDigit()
+                .contentShape(Rectangle())
+                .contextMenu {
+                    Button("Delete Project…", role: .destructive) {
+                        projectToDelete = row.summary.project
+                    }
+                }
             }
         }
     }

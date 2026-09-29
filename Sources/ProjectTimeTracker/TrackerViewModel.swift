@@ -70,12 +70,23 @@ final class TrackerViewModel: ObservableObject {
 
     var calendar: Calendar { tracker.calendar }
 
+    func totalTime(for project: Project) -> TimeInterval {
+        tracker.totalTime(for: project.id)
+    }
+
     func weekReport(containing date: Date, includeEmpty: Bool) -> WeekReport {
         tracker.weekReport(containing: date, includeEmpty: includeEmpty)
     }
 
     func date(_ date: Date, movedByWeeks weeks: Int) -> Date {
         tracker.date(date, movedByWeeks: weeks)
+    }
+
+    /// Permanently deletes a project and all its tracked time.
+    func deleteProject(_ project: Project) {
+        let isInNameBox = tracker.findProject(named: projectName)?.id == project.id
+        perform { try tracker.deleteProject(withID: project.id) }
+        if isInNameBox { projectName = "" }
     }
 
     /// Saves targets typed by the user. Empty text clears that target.

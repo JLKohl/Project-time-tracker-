@@ -19,7 +19,7 @@ A small Mac app that lives in your menu bar. Type a project name, click **Start*
 | 2 | The widget: menu bar icon with a project name box, Start/Stop button, live timer and today/week/all-time totals | ✅ tried out |
 | 2b | Fixes from trying it, plus target hours: set hours per day and/or week for a project and see a progress bar and time left | ✅ approved |
 | 3 | Hours view: every project with a day-by-day breakdown of the week, week and all-time totals, previous/next week buttons | ✅ approved (combined totals removed) |
-| 4 | Packaging: build a double-clickable `.app`, optional launch at login, install guide | ⏳ next |
+| 4 | Packaging: build a double-clickable `.app`, optional launch at login, install guide | 🔍 ready for review |
 
 ## What it does
 
@@ -35,21 +35,49 @@ A small Mac app that lives in your menu bar. Type a project name, click **Start*
 - Every Start and Stop is saved right away to `~/Library/Application Support/ProjectTimeTracker/data.json`. If the Mac restarts while a timer is running, it keeps counting when you reopen the app.
 - Days run midnight to midnight, and weeks run Sunday to Saturday. A session that runs past midnight is split between the two days (and weeks).
 
-## Trying it on your Mac
+## Installing on your Mac
 
-You need macOS 13 (Ventura) or newer.
+You need macOS 13 (Ventura) or newer, and Apple's free developer tools. To get the tools, open Terminal and run `xcode-select --install`. If it says they're already installed, you're set.
 
-1. Install Apple's developer tools, either Xcode from the App Store or, for a smaller download, run `xcode-select --install` in Terminal.
-2. In Terminal, go to this folder and run:
-
-   ```sh
-   swift run ProjectTimeTracker
-   ```
-
-   The first build takes a minute. A ⏱ icon then appears in your menu bar. Leave Terminal open while you use it; press Control-C in Terminal (or **Quit** in the panel) to close it. Checkpoint 4 turns this into a normal app you can double-click.
-
-3. To run the automatic tests:
+1. Get the project, if you haven't already:
 
    ```sh
-   swift test
+   cd ~/Desktop
+   git clone https://github.com/JLKohl/Project-time-tracker-.git
+   cd Project-time-tracker-
    ```
+
+2. Build and install the app:
+
+   ```sh
+   ./scripts/build-app.sh --install
+   ```
+
+   This takes a minute or two. It puts **Project Time Tracker** in your Applications folder and opens it. Look for the ⏱ icon in your menu bar. If a copy was already running (including one started from Terminal), it's closed first so it can be replaced.
+
+3. To have it start by itself whenever you log in, open the panel and tick **Open at login**. If macOS asks, allow it in **System Settings → General → Login Items**.
+
+From now on you can open it like any other app: from Applications, Launchpad or Spotlight (⌘-Space, type "Project Time Tracker"). You don't need Terminal or the project folder to use it. The project folder is only needed to update.
+
+**If macOS says the app can't be opened:** because you built it yourself, this usually doesn't happen. If it does, right-click the app in Applications, choose **Open**, then click **Open** again. You only need to do this once.
+
+### Updating to a newer version
+
+```sh
+cd ~/Desktop/Project-time-tracker-
+git pull
+./scripts/build-app.sh --install
+```
+
+Your tracked time is kept. It's stored separately, in `~/Library/Application Support/ProjectTimeTracker/data.json`.
+
+### Uninstalling
+
+Quit it from the panel, untick **Open at login** first if it's on, then drag **Project Time Tracker** from Applications to the Trash. To also delete your tracked time, delete the `~/Library/Application Support/ProjectTimeTracker` folder.
+
+## For developers
+
+- `swift run ProjectTimeTracker` runs the app straight from Terminal without installing it. Don't run it at the same time as the installed app: both would write to the same data file.
+- `swift test` runs the automatic tests for the tracking logic.
+- `./scripts/build-app.sh` (without `--install`) builds the app into the `build` folder only.
+- The tracking logic is in `Sources/TimeTrackerCore`, and the menu bar app and hours window are in `Sources/ProjectTimeTracker`.

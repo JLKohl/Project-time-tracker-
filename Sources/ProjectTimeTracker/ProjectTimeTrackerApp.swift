@@ -19,6 +19,15 @@ struct ProjectTimeTrackerApp: App {
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Only one copy may run, or two copies could overwrite each other's saved time.
+        if let bundleID = Bundle.main.bundleIdentifier {
+            let others = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID)
+                .filter { $0 != NSRunningApplication.current }
+            if !others.isEmpty {
+                NSApp.terminate(nil)
+                return
+            }
+        }
         // Live in the menu bar only: no Dock icon.
         NSApp.setActivationPolicy(.accessory)
     }

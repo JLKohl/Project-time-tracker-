@@ -5,6 +5,7 @@ import TimeTrackerCore
 /// The panel that drops down from the menu bar icon.
 struct TrackerPanel: View {
     @ObservedObject var model: TrackerViewModel
+    @StateObject private var loginItem = LoginItem()
 
     @State private var editingTargets = false
     @State private var dailyTargetText = ""
@@ -55,6 +56,23 @@ struct TrackerPanel: View {
             }
 
             Divider()
+
+            if loginItem.isAvailable {
+                Toggle("Open at login", isOn: Binding(
+                    get: { loginItem.isEnabled },
+                    set: { loginItem.setEnabled($0) }
+                ))
+                .toggleStyle(.checkbox)
+                .font(.caption)
+                .onAppear { loginItem.refresh() }
+
+                if let message = loginItem.message {
+                    Text(message)
+                        .font(.caption2)
+                        .foregroundStyle(.orange)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
 
             HStack {
                 Button {

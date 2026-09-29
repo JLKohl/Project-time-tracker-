@@ -385,6 +385,84 @@ final class TimeTrackerTests: XCTestCase {
         XCTAssertNotEqual(tracker.runningProject?.id, doomed.id)
     }
 
+    func testTrimmingARunawaySession() throws {
+        // Started at 9am, forgotten, still running at 9pm. Really stopped at 11am.
+        try tracker.start(projectNamed: "Website")
+        clock.advance(hours: 12)
+        let project = try XCTUnwrap(tracker.runningProject)
+        let session = try XCTUnwrap(tracker.runningEntry)
+
+        try tracker.updateSession(withID: session.id, start: session.start,
+                                  end: TestClock.date("2026-09-28T11:00:00Z"))
+
+        XCTAssertNil(tracker.runningEntry)
+        XCTAssertEqual(tracker.totalTime(for: project.id), 2 * 3600)
+        XCTAssertEqual(try makeTracker().totalTime(for: project.id), 2 * 3600)
+    }
+
+    func testMovingTheStartOfARunningSessionKeepsItRunning() throws {
+        try tracker.start(projectNamed: "Website")
+        clock.advance(hours: 1)
+        let session = try XCTUnwrap(tracker.runningEntry)
+
+        // Forgot to press Start: really began 30 minutes earlier.
+        try tracker.updateSession(withID: session.id, start: session.start.addingTimeInterval(-1800), end: nil)
+
+        XCTAssertEqual(tracker.runningEntry?.id, session.id)
+        XCTAssertEqual(tracker.totalTime(for: session.projectID), 1.5 * 3600)
+    }
+
+    func testSessionTimesAreValidated() throws {
+        try tracker.start(projectNamed: "Website")
+        clock.advance(hours: 1)
+        try tracker.stop()
+        let session = try XCTUnwrap(tracker.data.entries.first)
+
+        XCTAssertThrowsError(try tracker.updateSession(withID: session.id, start: session.start,
+                                                       end: session.start.addingTimeInterval(-60))) { error in
+            XCTAssertEqual(error as? TimeTrackerError, .endBeforeStart)
+        }
+        XCTAssertThrowsError(try tracker.updateSession(withID: session.id, start: session.start,
+                                                       end: clock.now.addingTimeInterval(3600))) { error in
+            XCTAssertEqual(error as? TimeTrackerError, .timeInFuture)
+        }
+        // A finished session can't be made "running" again.
+        XCTAssertThrowsError(try tracker.updateSession(withID: session.id, start: session.start, end: nil))
+        XCTAssertEqual(tracker.data.entries.first, session)
+    }
+
+    func testAddAndDeleteSessions() throws {
+        let project = try tracker.addProject(named: "Website")
+        clock.set("2026-09-30T18:00:00Z")
+
+        let added = try tracker.addSession(for: project.id,
+                                           start: TestClock.date("2026-09-30T13:00:00Z"),
+                                           end: TestClock.date("2026-09-30T15:30:00Z"))
+        XCTAssertEqual(tracker.totalTime(for: project.id), 2.5 * 3600)
+        XCTAssertNil(tracker.runningEntry)
+
+        let week = tracker.weekInterval(containing: clock.now)
+        XCTAssertEqual(tracker.sessions(for: project.id, in: week).map(\.id), [added.id])
+        let lastWeek = tracker.weekInterval(containing: tracker.date(clock.now, movedByWeeks: -1))
+        XCTAssertTrue(tracker.sessions(for: project.id, in: lastWeek).isEmpty)
+
+        try tracker.deleteSession(withID: added.id)
+        XCTAssertEqual(tracker.totalTime(for: project.id), 0)
+        XCTAssertTrue(try makeTracker().data.entries.isEmpty)
+    }
+
+    func testSessionsIncludesOnesCrossingIntoTheWeek() throws {
+        // Sunday 11pm to Monday 1am, with weeks starting Monday.
+        clock.set("2026-09-27T23:00:00Z")
+        try tracker.start(projectNamed: "Late night")
+        clock.advance(hours: 2)
+        try tracker.stop()
+
+        let id = try XCTUnwrap(tracker.findProject(named: "Late night")).id
+        XCTAssertEqual(tracker.sessions(for: id, in: tracker.weekInterval(containing: clock.now)).count, 1)
+        XCTAssertEqual(tracker.sessions(for: id, in: tracker.weekInterval(containing: TestClock.date("2026-09-27T12:00:00Z"))).count, 1)
+    }
+
     func testRunningTimerSurvivesRestart() throws {
         try tracker.start(projectNamed: "Website")
         clock.advance(hours: 1)

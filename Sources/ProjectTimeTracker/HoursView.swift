@@ -42,6 +42,8 @@ struct HoursView: View {
     @State private var projectToDelete: Project?
     /// The project being renamed, and the name typed so far.
     @State private var projectToRename: Project?
+    /// The project whose sessions are being edited.
+    @State private var sessionsProject: Project?
     @State private var renameText = ""
 
     private var isCurrentWeek: Bool {
@@ -84,13 +86,16 @@ struct HoursView: View {
                         .font(.caption)
                         .foregroundStyle(.red)
                 }
-                Text("Right-click a project to rename or delete it. Projects with no time this week are hidden unless you untick the box above.")
+                Text("Right-click a project to edit its sessions, rename it or delete it. Projects with no time this week are hidden unless you untick the box above.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
         }
         .padding(20)
         .frame(minWidth: 820, minHeight: 320, alignment: .topLeading)
+        .sheet(item: $sessionsProject) { project in
+            SessionsEditor(model: model, project: project, week: model.weekInterval(containing: shownDate))
+        }
         .alert(
             "Delete “\(projectToDelete?.name ?? "")”?",
             isPresented: Binding(get: { projectToDelete != nil }, set: { if !$0 { projectToDelete = nil } }),
@@ -119,6 +124,10 @@ struct HoursView: View {
                 .monospacedDigit()
                 .foregroundStyle(.secondary)
             Spacer()
+            Button("Edit Times…") {
+                model.clearError()
+                sessionsProject = project
+            }
             Button {
                 model.stop()
             } label: {
@@ -199,6 +208,10 @@ struct HoursView: View {
                 .monospacedDigit()
                 .contentShape(Rectangle())
                 .contextMenu {
+                    Button("Edit Sessions…") {
+                        model.clearError()
+                        sessionsProject = row.summary.project
+                    }
                     Button("Rename Project…") {
                         renameText = row.summary.project.name
                         projectToRename = row.summary.project

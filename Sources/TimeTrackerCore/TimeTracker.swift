@@ -4,6 +4,10 @@ public enum TimeTrackerError: Error, Equatable {
     case emptyProjectName
     /// Another project already has this name (the associated value is its name).
     case duplicateProjectName(String)
+    /// A session's end time is not after its start time.
+    case endBeforeStart
+    /// A session's start or end time is later than now.
+    case timeInFuture
 }
 
 /// Starts and stops timers and answers "how much time did I spend?" questions.
@@ -129,6 +133,54 @@ public final class TimeTracker {
             .sorted { (lastUsed[$0.id] ?? $0.createdAt) > (lastUsed[$1.id] ?? $1.createdAt) }
             .prefix(limit)
             .map { $0 }
+    }
+
+    // MARK: - Sessions
+
+    /// A project's sessions that overlap `interval`, oldest first.
+    public func sessions(for projectID: UUID, in interval: DateInterval) -> [TimeEntry] {
+        let current = now()
+        return entries(for: projectID)
+            .filter { $0.start < interval.end && ($0.end ?? current) > interval.start }
+            .sorted { $0.start < $1.start }
+    }
+
+    /// Changes a session's start and end. `end` may be `nil` only for the running session,
+    /// to keep it running; giving the running session an end time stops it.
+    public func updateSession(withID id: UUID, start: Date, end: Date?) throws {
+        guard let index = data.entries.firstIndex(where: { $0.id == id }) else { return }
+        let existing = data.entries[index]
+        let keepsRunning = end == nil && existing.isRunning
+        try validateSession(start: start, end: keepsRunning ? now() : end)
+
+        data.entries[index] = TimeEntry(id: existing.id, projectID: existing.projectID, start: start,
+                                        end: keepsRunning ? nil : end)
+        try store.save(data)
+    }
+
+    /// Adds a finished session, e.g. for time worked without starting the timer.
+    @discardableResult
+    public func addSession(for projectID: UUID, start: Date, end: Date) throws -> TimeEntry {
+        try validateSession(start: start, end: end)
+        let entry = TimeEntry(projectID: projectID, start: start, end: end)
+        data.entries.append(entry)
+        try store.save(data)
+        return entry
+    }
+
+    /// Permanently removes one session.
+    public func deleteSession(withID id: UUID) throws {
+        guard data.entries.contains(where: { $0.id == id }) else { return }
+        data.entries.removeAll { $0.id == id }
+        try store.save(data)
+    }
+
+    private func validateSession(start: Date, end: Date?) throws {
+        guard let end else { throw TimeTrackerError.endBeforeStart }
+        // A little slack so "now" picked in the UI a moment ago still counts as not in the future.
+        let latest = now().addingTimeInterval(60)
+        guard start <= latest, end <= latest else { throw TimeTrackerError.timeInFuture }
+        guard end > start else { throw TimeTrackerError.endBeforeStart }
     }
 
     // MARK: - Totals

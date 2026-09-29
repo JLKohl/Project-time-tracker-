@@ -86,6 +86,38 @@ final class TrackerViewModel: ObservableObject {
 
     var calendar: Calendar { tracker.calendar }
 
+    func weekInterval(containing date: Date) -> DateInterval {
+        tracker.weekInterval(containing: date)
+    }
+
+    // MARK: Sessions
+
+    func sessions(for project: Project, in interval: DateInterval) -> [TimeEntry] {
+        tracker.sessions(for: project.id, in: interval)
+    }
+
+    /// Returns `false` (and shows a message) if the times aren't allowed.
+    @discardableResult
+    func updateSession(_ session: TimeEntry, start: Date, end: Date?) -> Bool {
+        perform { try tracker.updateSession(withID: session.id, start: start, end: end) }
+        return errorMessage == nil
+    }
+
+    /// Returns `false` (and shows a message) if the times aren't allowed.
+    @discardableResult
+    func addSession(for project: Project, start: Date, end: Date) -> Bool {
+        perform { _ = try tracker.addSession(for: project.id, start: start, end: end) }
+        return errorMessage == nil
+    }
+
+    func deleteSession(_ session: TimeEntry) {
+        perform { try tracker.deleteSession(withID: session.id) }
+    }
+
+    func clearError() {
+        errorMessage = nil
+    }
+
     func totalTime(for project: Project) -> TimeInterval {
         tracker.totalTime(for: project.id)
     }
@@ -141,6 +173,10 @@ final class TrackerViewModel: ObservableObject {
             errorMessage = "Type a project name first."
         } catch TimeTrackerError.duplicateProjectName(let name) {
             errorMessage = "There's already a project called “\(name)”."
+        } catch TimeTrackerError.endBeforeStart {
+            errorMessage = "The end time must be after the start time."
+        } catch TimeTrackerError.timeInFuture {
+            errorMessage = "Times can't be later than now."
         } catch {
             errorMessage = "Couldn't save: \(error.localizedDescription)"
         }

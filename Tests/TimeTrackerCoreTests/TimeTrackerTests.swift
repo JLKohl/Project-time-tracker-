@@ -61,6 +61,37 @@ final class TimeTrackerTests: XCTestCase {
         XCTAssertTrue(tracker.projects.isEmpty)
     }
 
+    func testAddProjectDoesNotStartTimer() throws {
+        let project = try tracker.addProject(named: " Website ")
+
+        XCTAssertEqual(project.name, "Website")
+        XCTAssertNil(tracker.runningEntry)
+        XCTAssertTrue(tracker.data.entries.isEmpty)
+        XCTAssertEqual(tracker.totalTime(for: project.id), 0)
+        XCTAssertEqual(try makeTracker().findProject(named: "website")?.id, project.id)
+
+        // Adding the same name again returns the same project.
+        XCTAssertEqual(try tracker.addProject(named: "WEBSITE").id, project.id)
+        XCTAssertEqual(tracker.projects.count, 1)
+
+        // Starting it later uses that project.
+        try tracker.start(projectNamed: "website")
+        XCTAssertEqual(tracker.runningProject?.id, project.id)
+    }
+
+    func testAddProjectRejectsEmptyName() {
+        XCTAssertThrowsError(try tracker.addProject(named: "  ")) { error in
+            XCTAssertEqual(error as? TimeTrackerError, .emptyProjectName)
+        }
+    }
+
+    func testAddingProjectLeavesRunningTimerAlone() throws {
+        try tracker.start(projectNamed: "Website")
+        clock.advance(minutes: 10)
+        try tracker.addProject(named: "Blog")
+        XCTAssertEqual(tracker.runningProject?.name, "Website")
+    }
+
     func testSameNameReusesProjectIgnoringCaseAndSpaces() throws {
         try tracker.start(projectNamed: "Website")
         try tracker.stop()

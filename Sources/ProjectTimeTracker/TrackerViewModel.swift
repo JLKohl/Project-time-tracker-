@@ -6,7 +6,11 @@ import TimeTrackerCore
 /// so the live timer and totals stay current.
 @MainActor
 final class TrackerViewModel: ObservableObject {
-    @Published var projectName = ""
+    @Published var projectName = "" {
+        didSet { if projectName != oldValue { infoMessage = nil } }
+    }
+    /// A short note, e.g. confirming a project was added.
+    @Published private(set) var infoMessage: String?
     @Published private(set) var now = Date()
     @Published private(set) var errorMessage: String?
     /// Set once at launch if saved data couldn't be read. Stays visible.
@@ -53,6 +57,18 @@ final class TrackerViewModel: ObservableObject {
             return nil
         }
         return tracker.summary(for: project, on: now)
+    }
+
+    /// Adds the typed project (or picks the existing one) without starting the timer.
+    func addProject() {
+        let isNew = tracker.findProject(named: projectName) == nil
+        var added: Project?
+        perform { added = try tracker.addProject(named: projectName) }
+        guard let added else { return }
+        projectName = added.name
+        infoMessage = isNew
+            ? "Added “\(added.name)”. Click Start when you're ready."
+            : "Selected “\(added.name)”. Click Start when you're ready."
     }
 
     func start() {
@@ -117,6 +133,7 @@ final class TrackerViewModel: ObservableObject {
     }
 
     private func perform(_ action: () throws -> Void) {
+        infoMessage = nil
         do {
             try action()
             errorMessage = nil

@@ -23,7 +23,7 @@ A small Mac app that lives in your menu bar. Type a project name, click **Start*
 
 ## What it does
 
-- Click the ⏱ icon in the menu bar, type a project name (or pick one from the recent-projects button), and press **Start** or hit Return.
+- Click the ⏱ icon in the menu bar and type a project name (or pick one from the recent-projects button). Pressing Return adds the project **without** starting the timer, so you can set up several projects (and their targets) ahead of time. Click **Start** (or press ⌘Return) when you want the timer to run.
 - While a timer is running, the time shows next to the menu bar icon, and the panel shows the project and a live clock. Press **Stop** (or Return) to stop.
 - Below the button you see how much time that project has had **today**, **this week**, and **all time**. Under an hour it shows minutes and seconds (e.g. `4m 12s`) so you can see it counting.
 - Click **Set targets** to give a project a goal per day and/or per week (type `2`, `1.5`, `1:30` or `1h 30m`; leave empty for none). Today and This week then show a progress bar and how much time is left, or "Target met ✓".

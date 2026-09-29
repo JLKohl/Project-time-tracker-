@@ -17,6 +17,11 @@ struct TrackerPanel: View {
     /// True while one of the inline editors (targets, rename, delete) is open.
     private var isEditing: Bool { editingTargets || confirmingDelete || renaming }
 
+    private var startStopShortcut: KeyboardShortcut? {
+        guard !isEditing else { return nil }
+        return model.isRunning ? .defaultAction : KeyboardShortcut(.return, modifiers: .command)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             if let warning = model.storageWarning {
@@ -40,9 +45,17 @@ struct TrackerPanel: View {
             .buttonStyle(.borderedProminent)
             .tint(model.isRunning ? .red : .green)
             .controlSize(.large)
-            // The name box handles Return itself; only let Return press this button when no box is showing,
-            // so one key press can never both start and stop the timer.
-            .keyboardShortcut(model.isRunning && !isEditing ? KeyboardShortcut.defaultAction : nil)
+            // Return in the name box only adds the project. While running (no name box), Return stops;
+            // otherwise ⌘Return starts.
+            .keyboardShortcut(startStopShortcut)
+            .help(model.isRunning ? "Stop (Return)" : "Start (⌘Return)")
+
+            if let info = model.infoMessage {
+                Text(info)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
 
             if let error = model.errorMessage {
                 Text(error)
@@ -112,7 +125,7 @@ struct TrackerPanel: View {
         HStack(spacing: 6) {
             TextField("Project name", text: $model.projectName)
                 .textFieldStyle(.roundedBorder)
-                .onSubmit(model.start)
+                .onSubmit(model.addProject)
 
             if !model.recentProjects.isEmpty {
                 Menu {

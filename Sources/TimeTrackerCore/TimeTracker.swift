@@ -66,6 +66,17 @@ public final class TimeTracker {
 
     // MARK: - Projects
 
+    /// Adds a project without starting its timer, or returns the existing one with that name.
+    @discardableResult
+    public func addProject(named name: String) throws -> Project {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { throw TimeTrackerError.emptyProjectName }
+        if let existing = findProject(named: trimmed) { return existing }
+        let project = createProject(named: trimmed, at: now())
+        try store.save(data)
+        return project
+    }
+
     public var projects: [Project] { data.projects }
 
     public func project(withID id: UUID) -> Project? {

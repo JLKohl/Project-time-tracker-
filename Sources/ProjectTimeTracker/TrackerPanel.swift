@@ -9,6 +9,7 @@ struct TrackerPanel: View {
     @State private var editingTargets = false
     @State private var dailyTargetText = ""
     @State private var weeklyTargetText = ""
+    @State private var confirmingDelete = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -35,7 +36,7 @@ struct TrackerPanel: View {
             .controlSize(.large)
             // The name box handles Return itself; only let Return press this button when no box is showing,
             // so one key press can never both start and stop the timer.
-            .keyboardShortcut(model.isRunning && !editingTargets ? KeyboardShortcut.defaultAction : nil)
+            .keyboardShortcut(model.isRunning && !editingTargets && !confirmingDelete ? KeyboardShortcut.defaultAction : nil)
 
             if let error = model.errorMessage {
                 Text(error)
@@ -113,12 +114,19 @@ struct TrackerPanel: View {
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                 Spacer()
-                if !editingTargets {
+                if !editingTargets && !confirmingDelete {
                     Button(hasTargets(summary.project) ? "Edit targets" : "Set targets") {
                         beginEditingTargets(summary.project)
                     }
                     .buttonStyle(.borderless)
                     .font(.caption)
+
+                    Button { confirmingDelete = true } label: {
+                        Image(systemName: "trash")
+                    }
+                    .buttonStyle(.borderless)
+                    .font(.caption)
+                    .help("Delete this project")
                 }
             }
 
@@ -137,9 +145,16 @@ struct TrackerPanel: View {
             if editingTargets {
                 targetEditor(summary.project)
             }
+
+            if confirmingDelete {
+                deleteConfirmation(summary)
+            }
         }
-        // Don't keep editing one project's targets after switching to another.
-        .onChange(of: summary.project.id) { _ in editingTargets = false }
+        // Don't keep editing (or deleting) one project after switching to another.
+        .onChange(of: summary.project.id) { _ in
+            editingTargets = false
+            confirmingDelete = false
+        }
     }
 
     private func total(
@@ -199,6 +214,30 @@ struct TrackerPanel: View {
             }
             .controlSize(.small)
         }
+    }
+
+    /// Asks before deleting, right in the panel.
+    private func deleteConfirmation(_ summary: ProjectSummary) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Delete “\(summary.project.name)” and all \(DurationFormat.compact(summary.allTimeTotal)) "
+                 + "of its time? This can't be undone.")
+                .font(.caption)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack {
+                Spacer()
+                Button("Cancel") { confirmingDelete = false }
+                    .keyboardShortcut(.cancelAction)
+                Button("Delete") {
+                    confirmingDelete = false
+                    model.deleteProject(summary.project)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.red)
+            }
+            .controlSize(.small)
+        }
+        .padding(10)
+        .background(RoundedRectangle(cornerRadius: 8).fill(Color.red.opacity(0.1)))
     }
 
     private func hasTargets(_ project: Project) -> Bool {

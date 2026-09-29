@@ -61,6 +61,13 @@ From now on you can open it like any other app: from Applications, Launchpad or 
 
 **If macOS says the app can't be opened:** because you built it yourself, this usually doesn't happen. If it does, right-click the app in Applications, choose **Open**, then click **Open** again. You only need to do this once.
 
+### Can't see the ⏱ icon?
+
+If the menu bar is crowded, macOS hides the icons that don't fit, and on MacBooks with a camera notch they can end up behind it. The icon gets wider while a timer is running, so this is more likely then. The tracker is still running and still counting.
+
+- Open **Project Time Tracker** again from Applications, Spotlight or the Dock. When it's already running, this opens the hours window, which shows the running timer with a **Stop** button.
+- To make room in the menu bar, quit other menu bar apps you don't need, or hold ⌘ and drag icons you don't want out of the menu bar.
+
 ### Updating to a newer version
 
 ```sh

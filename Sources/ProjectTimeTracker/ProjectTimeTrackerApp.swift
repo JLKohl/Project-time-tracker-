@@ -5,19 +5,30 @@ import TimeTrackerCore
 @main
 struct ProjectTimeTrackerApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
-    @StateObject private var model = TrackerViewModel()
 
     var body: some Scene {
         MenuBarExtra {
-            TrackerPanel(model: model)
+            TrackerPanel(model: appDelegate.model)
         } label: {
-            MenuBarLabel(model: model)
+            MenuBarLabel(model: appDelegate.model)
         }
         .menuBarExtraStyle(.window)
     }
 }
 
+@MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    /// Owned here (not by the SwiftUI scene) so the app can show it from outside the menu bar too.
+    lazy var model = TrackerViewModel()
+
+    /// Opening the app while it's already running (from Applications, Spotlight or the Dock)
+    /// shows the hours window. That way the tracker can always be reached, even when a crowded
+    /// menu bar or the camera notch hides its menu bar icon.
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        HoursWindowController.shared.show(model: model)
+        return false
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Only one copy may run, or two copies could overwrite each other's saved time.
         if let bundleID = Bundle.main.bundleIdentifier {

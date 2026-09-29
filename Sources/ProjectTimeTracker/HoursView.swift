@@ -52,6 +52,10 @@ struct HoursView: View {
         let report = model.weekReport(containing: shownDate, includeEmpty: !hideEmpty)
 
         VStack(alignment: .leading, spacing: 16) {
+            if let project = model.runningProject {
+                runningBanner(project)
+            }
+
             header(report)
                 .alert(
                     "Rename “\(projectToRename?.name ?? "")”",
@@ -98,6 +102,33 @@ struct HoursView: View {
             Text("This permanently removes the project and all \(DurationFormat.compact(model.totalTime(for: project))) "
                  + "of time tracked on it. This can't be undone.")
         }
+    }
+
+    // MARK: - Running timer
+
+    /// Shows the running timer with a Stop button, so it can be stopped from here too.
+    private func runningBanner(_ project: Project) -> some View {
+        HStack(spacing: 10) {
+            Circle()
+                .fill(Color.green)
+                .frame(width: 8, height: 8)
+            Text("Tracking \(project.name)")
+                .fontWeight(.semibold)
+                .lineLimit(1)
+            Text(DurationFormat.clock(model.runningElapsed ?? 0))
+                .monospacedDigit()
+                .foregroundStyle(.secondary)
+            Spacer()
+            Button {
+                model.stop()
+            } label: {
+                Label("Stop", systemImage: "stop.fill")
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(.red)
+        }
+        .padding(10)
+        .background(RoundedRectangle(cornerRadius: 8).fill(Color.green.opacity(0.1)))
     }
 
     // MARK: - Header

@@ -190,6 +190,62 @@ final class TimeTrackerTests: XCTestCase {
         XCTAssertEqual(summaries.last?.isRunning, false)
     }
 
+    func testTargetsShowTimeRemaining() throws {
+        try tracker.start(projectNamed: "Website")
+        let id = try XCTUnwrap(tracker.runningProject).id
+        try tracker.setTargets(for: id, daily: 2 * 3600, weekly: 10 * 3600)
+        let project = try XCTUnwrap(tracker.project(withID: id))
+        clock.advance(hours: 1, minutes: 30)
+
+        let summary = tracker.summary(for: project, on: clock.now)
+        XCTAssertEqual(summary.dayRemaining, 30 * 60)
+        XCTAssertEqual(summary.weekRemaining, 8.5 * 3600)
+        XCTAssertEqual(summary.dayProgress, 0.75)
+
+        clock.advance(hours: 1)
+        let over = tracker.summary(for: project, on: clock.now)
+        XCTAssertEqual(over.dayRemaining, 0)
+        XCTAssertEqual(over.dayProgress, 1)
+    }
+
+    func testClearingTargets() throws {
+        try tracker.start(projectNamed: "Website")
+        let id = try XCTUnwrap(tracker.runningProject).id
+        try tracker.setTargets(for: id, daily: 3600, weekly: 5 * 3600)
+        try tracker.setTargets(for: id, daily: nil, weekly: 0)
+
+        let project = try XCTUnwrap(tracker.project(withID: id))
+        XCTAssertNil(project.dailyTarget)
+        XCTAssertNil(project.weeklyTarget)
+        XCTAssertNil(tracker.summary(for: project, on: clock.now).dayRemaining)
+    }
+
+    func testTargetsAreSaved() throws {
+        try tracker.start(projectNamed: "Website")
+        let id = try XCTUnwrap(tracker.runningProject).id
+        try tracker.setTargets(for: id, daily: nil, weekly: 10 * 3600)
+
+        let reopened = try makeTracker()
+        XCTAssertEqual(reopened.project(withID: id)?.weeklyTarget, 10 * 3600)
+    }
+
+    func testOldSaveFilesWithoutTargetsStillLoad() throws {
+        let json = """
+        {"projects":[{"id":"6F9619FF-8B86-D011-B42D-00C04FC964FF","name":"Website",
+        "createdAt":"2026-09-28T09:00:00Z"}],"entries":[]}
+        """
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+            .appendingPathComponent("data.json")
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try Data(json.utf8).write(to: url)
+
+        let data = try JSONFileStore(fileURL: url).load()
+        XCTAssertEqual(data.projects.first?.name, "Website")
+        XCTAssertNil(data.projects.first?.dailyTarget)
+    }
+
     func testRunningTimerSurvivesRestart() throws {
         try tracker.start(projectNamed: "Website")
         clock.advance(hours: 1)
@@ -227,5 +283,28 @@ final class TimeTrackerTests: XCTestCase {
         XCTAssertEqual(DurationFormat.hoursMinutes(12 * 3600 + 5 * 60 + 59), "12h 05m")
         XCTAssertEqual(DurationFormat.decimalHours(5400), "1.5")
         XCTAssertEqual(DurationFormat.clock(-5), "0:00:00")
+        XCTAssertEqual(DurationFormat.compact(0), "0m 00s")
+        XCTAssertEqual(DurationFormat.compact(252), "4m 12s")
+        XCTAssertEqual(DurationFormat.compact(3 * 3600 + 5 * 60), "3h 05m")
+    }
+
+    func testParsingTargetHours() {
+        XCTAssertEqual(DurationFormat.parseHours("2"), 2 * 3600)
+        XCTAssertEqual(DurationFormat.parseHours(" 1.5 "), 1.5 * 3600)
+        XCTAssertEqual(DurationFormat.parseHours("1:30"), 1.5 * 3600)
+        XCTAssertEqual(DurationFormat.parseHours("2h"), 2 * 3600)
+        XCTAssertEqual(DurationFormat.parseHours("45m"), 45 * 60)
+        XCTAssertEqual(DurationFormat.parseHours("1h 30m"), 1.5 * 3600)
+        XCTAssertEqual(DurationFormat.parseHours("1H30M"), 1.5 * 3600)
+        XCTAssertNil(DurationFormat.parseHours(""))
+        XCTAssertNil(DurationFormat.parseHours("abc"))
+        XCTAssertNil(DurationFormat.parseHours("1:75"))
+        XCTAssertNil(DurationFormat.parseHours("-2"))
+        XCTAssertNil(DurationFormat.parseHours("2h 5"))
+
+        for text in ["2", "1.5", "1:20", "0:45"] {
+            let parsed = DurationFormat.parseHours(text)!
+            XCTAssertEqual(DurationFormat.targetText(parsed), text)
+        }
     }
 }

@@ -64,6 +64,21 @@ final class TrackerViewModel: ObservableObject {
         isRunning ? stop() : start()
     }
 
+    /// Saves targets typed by the user. Empty text clears that target.
+    /// Returns `false` (and shows a message) if either box can't be read.
+    @discardableResult
+    func setTargets(for project: Project, daily dailyText: String, weekly weeklyText: String) -> Bool {
+        let daily = DurationFormat.parseHours(dailyText)
+        let weekly = DurationFormat.parseHours(weeklyText)
+        let isBlank = { (text: String) in text.trimmingCharacters(in: .whitespaces).isEmpty }
+        guard (daily != nil || isBlank(dailyText)), (weekly != nil || isBlank(weeklyText)) else {
+            errorMessage = "Enter hours like 2, 1.5, 1:30 or 1h 30m."
+            return false
+        }
+        perform { try tracker.setTargets(for: project.id, daily: daily, weekly: weekly) }
+        return errorMessage == nil
+    }
+
     private func perform(_ action: () throws -> Void) {
         do {
             try action()

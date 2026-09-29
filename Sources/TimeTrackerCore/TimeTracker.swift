@@ -76,6 +76,14 @@ public final class TimeTracker {
         return data.projects.first(where: { Self.normalized($0.name) == key })
     }
 
+    /// Sets (or clears, with `nil`) a project's daily and weekly target hours.
+    public func setTargets(for projectID: UUID, daily: TimeInterval?, weekly: TimeInterval?) throws {
+        guard let index = data.projects.firstIndex(where: { $0.id == projectID }) else { return }
+        data.projects[index].dailyTarget = daily.flatMap { $0 > 0 ? $0 : nil }
+        data.projects[index].weeklyTarget = weekly.flatMap { $0 > 0 ? $0 : nil }
+        try store.save(data)
+    }
+
     /// Projects ordered by when they were last worked on, most recent first.
     public func recentProjects(limit: Int = 5) -> [Project] {
         var lastUsed: [UUID: Date] = [:]

@@ -5,11 +5,23 @@ public struct Project: Codable, Identifiable, Equatable, Hashable {
     public let id: UUID
     public var name: String
     public let createdAt: Date
+    /// Optional goal for each day, e.g. 2 hours. `nil` means no goal.
+    public var dailyTarget: TimeInterval?
+    /// Optional goal for each week, e.g. 10 hours. `nil` means no goal.
+    public var weeklyTarget: TimeInterval?
 
-    public init(id: UUID = UUID(), name: String, createdAt: Date) {
+    public init(
+        id: UUID = UUID(),
+        name: String,
+        createdAt: Date,
+        dailyTarget: TimeInterval? = nil,
+        weeklyTarget: TimeInterval? = nil
+    ) {
         self.id = id
         self.name = name
         self.createdAt = createdAt
+        self.dailyTarget = dailyTarget
+        self.weeklyTarget = weeklyTarget
     }
 }
 
@@ -64,6 +76,30 @@ public struct ProjectSummary: Identifiable, Equatable {
     public let isRunning: Bool
 
     public var id: UUID { project.id }
+
+    /// Time still needed today to reach the daily target, or `nil` if there is no target.
+    public var dayRemaining: TimeInterval? {
+        project.dailyTarget.map { max(0, $0 - dayTotal) }
+    }
+
+    /// Time still needed this week to reach the weekly target, or `nil` if there is no target.
+    public var weekRemaining: TimeInterval? {
+        project.weeklyTarget.map { max(0, $0 - weekTotal) }
+    }
+
+    /// 0...1 progress toward the daily target, or `nil` if there is no target.
+    public var dayProgress: Double? {
+        project.dailyTarget.map { Self.progress(dayTotal, of: $0) }
+    }
+
+    /// 0...1 progress toward the weekly target, or `nil` if there is no target.
+    public var weekProgress: Double? {
+        project.weeklyTarget.map { Self.progress(weekTotal, of: $0) }
+    }
+
+    private static func progress(_ done: TimeInterval, of target: TimeInterval) -> Double {
+        target > 0 ? min(1, done / target) : 1
+    }
 }
 
 /// Time spent on one calendar day.

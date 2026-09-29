@@ -6,6 +6,10 @@ import TimeTrackerCore
 struct TrackerPanel: View {
     @ObservedObject var model: TrackerViewModel
 
+    @State private var editingTargets = false
+    @State private var dailyTargetText = ""
+    @State private var weeklyTargetText = ""
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             if let warning = model.storageWarning {
@@ -29,7 +33,9 @@ struct TrackerPanel: View {
             .buttonStyle(.borderedProminent)
             .tint(model.isRunning ? .red : .green)
             .controlSize(.large)
-            .keyboardShortcut(.defaultAction)
+            // The name box handles Return itself; only let Return press this button when no box is showing,
+            // so one key press can never both start and stop the timer.
+            .keyboardShortcut(model.isRunning && !editingTargets ? KeyboardShortcut.defaultAction : nil)
 
             if let error = model.errorMessage {
                 Text(error)
@@ -92,28 +98,114 @@ struct TrackerPanel: View {
     }
 
     private func totals(_ summary: ProjectSummary) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(summary.project.name)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-            HStack(spacing: 0) {
-                total("Today", summary.dayTotal)
-                total("This week", summary.weekTotal)
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(summary.project.name)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                Spacer()
+                if !editingTargets {
+                    Button(hasTargets(summary.project) ? "Edit targets" : "Set targets") {
+                        beginEditingTargets(summary.project)
+                    }
+                    .buttonStyle(.borderless)
+                    .font(.caption)
+                }
+            }
+
+            HStack(alignment: .top, spacing: 8) {
+                total("Today", summary.dayTotal,
+                      target: summary.project.dailyTarget,
+                      progress: summary.dayProgress,
+                      remaining: summary.dayRemaining)
+                total("This week", summary.weekTotal,
+                      target: summary.project.weeklyTarget,
+                      progress: summary.weekProgress,
+                      remaining: summary.weekRemaining)
                 total("All time", summary.allTimeTotal)
             }
+
+            if editingTargets {
+                targetEditor(summary.project)
+            }
         }
+        // Don't keep editing one project's targets after switching to another.
+        .onChange(of: summary.project.id) { _ in editingTargets = false }
     }
 
-    private func total(_ title: String, _ value: TimeInterval) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
+    private func total(
+        _ title: String,
+        _ value: TimeInterval,
+        target: TimeInterval? = nil,
+        progress: Double? = nil,
+        remaining: TimeInterval? = nil
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
             Text(title)
                 .font(.caption2)
                 .foregroundStyle(.secondary)
-            Text(DurationFormat.hoursMinutes(value))
+            Text(DurationFormat.compact(value))
                 .font(.callout.weight(.semibold))
                 .monospacedDigit()
+            if let target, let progress, let remaining {
+                ProgressView(value: progress)
+                    .progressViewStyle(.linear)
+                    .tint(remaining == 0 ? Color.green : Color.accentColor)
+                Text(remaining == 0
+                     ? "Target met ✓"
+                     : "\(DurationFormat.compact(remaining)) left")
+                    .font(.caption2)
+                    .foregroundStyle(remaining == 0 ? Color.green : Color.secondary)
+                    .monospacedDigit()
+                    .help("Target: \(DurationFormat.hoursMinutes(target))")
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func targetEditor(_ project: Project) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Grid(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 6) {
+                GridRow {
+                    Text("Hours per day").font(.caption)
+                    TextField("none", text: $dailyTargetText)
+                        .textFieldStyle(.roundedBorder)
+                        .onSubmit { saveTargets(project) }
+                }
+                GridRow {
+                    Text("Hours per week").font(.caption)
+                    TextField("none", text: $weeklyTargetText)
+                        .textFieldStyle(.roundedBorder)
+                        .onSubmit { saveTargets(project) }
+                }
+            }
+            Text("e.g. 2, 1.5, 1:30 or 1h 30m. Leave empty for no target.")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+            HStack {
+                Spacer()
+                Button("Cancel") { editingTargets = false }
+                    .keyboardShortcut(.cancelAction)
+                Button("Save") { saveTargets(project) }
+            }
+            .controlSize(.small)
+        }
+    }
+
+    private func hasTargets(_ project: Project) -> Bool {
+        project.dailyTarget != nil || project.weeklyTarget != nil
+    }
+
+    private func beginEditingTargets(_ project: Project) {
+        dailyTargetText = project.dailyTarget.map(DurationFormat.targetText) ?? ""
+        weeklyTargetText = project.weeklyTarget.map(DurationFormat.targetText) ?? ""
+        editingTargets = true
+    }
+
+    private func saveTargets(_ project: Project) {
+        if model.setTargets(for: project, daily: dailyTargetText, weekly: weeklyTargetText) {
+            editingTargets = false
+        }
     }
 }

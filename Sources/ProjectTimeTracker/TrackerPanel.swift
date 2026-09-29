@@ -58,7 +58,6 @@ struct TrackerPanel: View {
                 }
                 .buttonStyle(.borderless)
                 .font(.caption)
-                .keyboardShortcut("h")
 
                 Spacer()
                 Button("Quit") { NSApp.terminate(nil) }

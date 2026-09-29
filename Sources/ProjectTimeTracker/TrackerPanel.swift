@@ -150,6 +150,10 @@ struct TrackerPanel: View {
 
     private func totals(_ summary: ProjectSummary) -> some View {
         VStack(alignment: .leading, spacing: 8) {
+            if !isEditing {
+                projectActions(summary.project)
+            }
+
             Text(summary.project.name)
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -165,10 +169,6 @@ struct TrackerPanel: View {
                       progress: summary.weekProgress,
                       remaining: summary.weekRemaining)
                 total("All time", summary.allTimeTotal)
-            }
-
-            if !isEditing {
-                projectActions(summary.project)
             }
 
             if editingTargets {

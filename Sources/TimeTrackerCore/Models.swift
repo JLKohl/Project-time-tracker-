@@ -55,12 +55,20 @@ public struct TrackerData: Codable, Equatable {
     }
 }
 
-/// Weekly and all-time totals for one project.
+/// Daily, weekly and all-time totals for one project.
 public struct ProjectSummary: Identifiable, Equatable {
     public let project: Project
+    public let dayTotal: TimeInterval
     public let weekTotal: TimeInterval
     public let allTimeTotal: TimeInterval
     public let isRunning: Bool
 
     public var id: UUID { project.id }
+}
+
+/// Time spent on one calendar day.
+public struct DayTotal: Equatable {
+    /// Midnight at the start of the day.
+    public let day: Date
+    public let total: TimeInterval
 }

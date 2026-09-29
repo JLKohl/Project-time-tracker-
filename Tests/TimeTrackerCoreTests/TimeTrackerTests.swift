@@ -123,15 +123,69 @@ final class TimeTrackerTests: XCTestCase {
         XCTAssertEqual(tracker.totalTime(for: project.id), 3 * 3600)
     }
 
+    func testDayTotalOnlyCountsThatDay() throws {
+        // Monday: 2 hours. Tuesday: 30 minutes.
+        try tracker.start(projectNamed: "Website")
+        clock.advance(hours: 2)
+        try tracker.stop()
+        clock.set("2026-09-29T09:00:00Z")
+        try tracker.start(projectNamed: "Website")
+        clock.advance(minutes: 30)
+        try tracker.stop()
+
+        let project = try XCTUnwrap(tracker.findProject(named: "Website"))
+        XCTAssertEqual(tracker.dayTime(for: project.id, dayContaining: TestClock.date("2026-09-28T12:00:00Z")), 2 * 3600)
+        XCTAssertEqual(tracker.dayTime(for: project.id, dayContaining: clock.now), 30 * 60)
+        XCTAssertEqual(tracker.weekTime(for: project.id, weekContaining: clock.now), 2.5 * 3600)
+    }
+
+    func testEntryPastMidnightIsSplitBetweenDays() throws {
+        // Monday 11pm to Tuesday 1am.
+        clock.set("2026-09-28T23:00:00Z")
+        try tracker.start(projectNamed: "Late night")
+        clock.advance(hours: 2)
+        try tracker.stop()
+
+        let project = try XCTUnwrap(tracker.findProject(named: "Late night"))
+        XCTAssertEqual(tracker.dayTime(for: project.id, dayContaining: TestClock.date("2026-09-28T12:00:00Z")), 3600)
+        XCTAssertEqual(tracker.dayTime(for: project.id, dayContaining: TestClock.date("2026-09-29T12:00:00Z")), 3600)
+    }
+
+    func testDailyBreakdownCoversTheWholeWeek() throws {
+        clock.set("2026-09-30T10:00:00Z") // Wednesday
+        try tracker.start(projectNamed: "Website")
+        clock.advance(hours: 3)
+        try tracker.stop()
+
+        let project = try XCTUnwrap(tracker.findProject(named: "Website"))
+        let days = tracker.dailyBreakdown(for: project.id, weekContaining: clock.now)
+        XCTAssertEqual(days.count, 7)
+        XCTAssertEqual(days.first?.day, TestClock.date("2026-09-28T00:00:00Z")) // Monday
+        XCTAssertEqual(days.map(\.total), [0, 0, 3 * 3600, 0, 0, 0, 0])
+    }
+
+    func testRecentProjectsMostRecentFirst() throws {
+        try tracker.start(projectNamed: "Old")
+        clock.advance(hours: 1)
+        try tracker.start(projectNamed: "Newer")
+        clock.advance(hours: 1)
+        try tracker.start(projectNamed: "Old")
+        try tracker.stop()
+
+        XCTAssertEqual(tracker.recentProjects().map(\.name), ["Old", "Newer"])
+        XCTAssertEqual(tracker.recentProjects(limit: 1).map(\.name), ["Old"])
+    }
+
     func testSummariesSortedByThisWeek() throws {
         try tracker.start(projectNamed: "Small")
         clock.advance(hours: 1)
         try tracker.start(projectNamed: "Big")
         clock.advance(hours: 4)
 
-        let summaries = tracker.summaries(weekContaining: clock.now)
+        let summaries = tracker.summaries(on: clock.now)
         XCTAssertEqual(summaries.map(\.project.name), ["Big", "Small"])
         XCTAssertEqual(summaries.first?.weekTotal, 4 * 3600)
+        XCTAssertEqual(summaries.first?.dayTotal, 4 * 3600)
         XCTAssertEqual(summaries.first?.isRunning, true)
         XCTAssertEqual(summaries.last?.isRunning, false)
     }

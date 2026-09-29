@@ -76,7 +76,25 @@ public final class TimeTracker {
         return data.projects.first(where: { Self.normalized($0.name) == key })
     }
 
+    /// Projects ordered by when they were last worked on, most recent first.
+    public func recentProjects(limit: Int = 5) -> [Project] {
+        var lastUsed: [UUID: Date] = [:]
+        for entry in data.entries {
+            lastUsed[entry.projectID] = max(lastUsed[entry.projectID] ?? .distantPast, entry.start)
+        }
+        return data.projects
+            .sorted { (lastUsed[$0.id] ?? $0.createdAt) > (lastUsed[$1.id] ?? $1.createdAt) }
+            .prefix(limit)
+            .map { $0 }
+    }
+
     // MARK: - Totals
+
+    /// The calendar day (midnight to midnight) that contains `date`.
+    public func dayInterval(containing date: Date) -> DateInterval {
+        calendar.dateInterval(of: .day, for: date)
+            ?? DateInterval(start: calendar.startOfDay(for: date), duration: 24 * 60 * 60)
+    }
 
     /// The week (per the calendar's first weekday) that contains `date`.
     public func weekInterval(containing date: Date) -> DateInterval {
@@ -89,26 +107,48 @@ public final class TimeTracker {
         return entries(for: projectID).reduce(0) { $0 + $1.duration(asOf: current) }
     }
 
-    /// Time spent on a project during the week containing `date`.
-    /// Entries that cross a week boundary are split at midnight of the boundary.
-    public func weekTime(for projectID: UUID, weekContaining date: Date) -> TimeInterval {
+    /// Time spent on a project inside `interval`. Entries that cross the edge
+    /// of the interval only count the part inside it.
+    public func time(for projectID: UUID, in interval: DateInterval) -> TimeInterval {
         let current = now()
-        let week = weekInterval(containing: date)
-        return entries(for: projectID).reduce(0) { $0 + $1.duration(within: week, asOf: current) }
+        return entries(for: projectID).reduce(0) { $0 + $1.duration(within: interval, asOf: current) }
     }
 
-    /// Weekly and all-time totals for every project, busiest this week first.
-    public func summaries(weekContaining date: Date) -> [ProjectSummary] {
-        let runningID = runningEntry?.projectID
-        return data.projects
-            .map { project in
-                ProjectSummary(
-                    project: project,
-                    weekTotal: weekTime(for: project.id, weekContaining: date),
-                    allTimeTotal: totalTime(for: project.id),
-                    isRunning: project.id == runningID
-                )
-            }
+    /// Time spent on a project on the day containing `date`.
+    public func dayTime(for projectID: UUID, dayContaining date: Date) -> TimeInterval {
+        time(for: projectID, in: dayInterval(containing: date))
+    }
+
+    /// Time spent on a project during the week containing `date`.
+    public func weekTime(for projectID: UUID, weekContaining date: Date) -> TimeInterval {
+        time(for: projectID, in: weekInterval(containing: date))
+    }
+
+    /// Hours for each of the seven days in the week containing `date`, in order.
+    public func dailyBreakdown(for projectID: UUID, weekContaining date: Date) -> [DayTotal] {
+        let week = weekInterval(containing: date)
+        return (0..<7).compactMap { offset in
+            guard let day = calendar.date(byAdding: .day, value: offset, to: week.start) else { return nil }
+            let interval = dayInterval(containing: day)
+            return DayTotal(day: interval.start, total: time(for: projectID, in: interval))
+        }
+    }
+
+    /// Today, this week and all-time totals for one project, relative to `date`.
+    public func summary(for project: Project, on date: Date) -> ProjectSummary {
+        ProjectSummary(
+            project: project,
+            dayTotal: dayTime(for: project.id, dayContaining: date),
+            weekTotal: weekTime(for: project.id, weekContaining: date),
+            allTimeTotal: totalTime(for: project.id),
+            isRunning: project.id == runningEntry?.projectID
+        )
+    }
+
+    /// Summaries for every project, busiest that week first.
+    public func summaries(on date: Date) -> [ProjectSummary] {
+        data.projects
+            .map { summary(for: $0, on: date) }
             .sorted {
                 if $0.weekTotal != $1.weekTotal { return $0.weekTotal > $1.weekTotal }
                 if $0.allTimeTotal != $1.allTimeTotal { return $0.allTimeTotal > $1.allTimeTotal }

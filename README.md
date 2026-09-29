@@ -67,6 +67,8 @@ If the menu bar is crowded, macOS hides the icons that don't fit, and on MacBook
 
 - Open **Project Time Tracker** again from Applications, Spotlight or the Dock. When it's already running, this opens the hours window, which shows the running timer with a **Stop** button.
 - To make room in the menu bar, quit other menu bar apps you don't need, or hold ⌘ and drag icons you don't want out of the menu bar.
+- Once you can see the ⏱ icon, hold ⌘ and drag it to the right, next to the clock. Icons nearest the clock are the last to be hidden, and macOS remembers the position.
+- Untick **Show time in menu bar** in the panel to keep the icon narrow. It then shows a filled stopwatch while a timer is running instead of the time.
 
 ### Updating to a newer version
 

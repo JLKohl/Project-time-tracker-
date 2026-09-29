@@ -45,14 +45,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 }
 
 /// The icon in the menu bar. Shows the running time next to it while tracking.
+/// With "Show time in menu bar" off, only the icon shows: a filled stopwatch while a timer runs.
+/// That keeps it narrow, so it's less likely to be hidden on a crowded menu bar or behind the notch.
 struct MenuBarLabel: View {
     @ObservedObject var model: TrackerViewModel
+    @AppStorage(MenuBarLabel.showTimeKey) private var showTime = true
+
+    static let showTimeKey = "showTimeInMenuBar"
 
     var body: some View {
         if let elapsed = model.runningElapsed {
-            HStack(spacing: 4) {
-                Image(systemName: "timer")
-                Text(DurationFormat.clock(elapsed)).monospacedDigit()
+            if showTime {
+                HStack(spacing: 4) {
+                    Image(systemName: "timer")
+                    Text(DurationFormat.clock(elapsed)).monospacedDigit()
+                }
+            } else {
+                Image(systemName: "stopwatch.fill")
             }
         } else {
             Image(systemName: "timer")

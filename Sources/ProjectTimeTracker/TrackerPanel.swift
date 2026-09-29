@@ -6,6 +6,7 @@ import TimeTrackerCore
 struct TrackerPanel: View {
     @ObservedObject var model: TrackerViewModel
     @StateObject private var loginItem = LoginItem()
+    @AppStorage(MenuBarLabel.showTimeKey) private var showTimeInMenuBar = true
 
     @State private var editingTargets = false
     @State private var dailyTargetText = ""
@@ -69,6 +70,11 @@ struct TrackerPanel: View {
             }
 
             Divider()
+
+            Toggle("Show time in menu bar", isOn: $showTimeInMenuBar)
+                .toggleStyle(.checkbox)
+                .font(.caption)
+                .help("Turn off to keep the menu bar icon small, so it isn't hidden by the notch")
 
             if loginItem.isAvailable {
                 Toggle("Open at login", isOn: Binding(

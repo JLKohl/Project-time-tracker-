@@ -18,8 +18,8 @@ A small Mac app that lives in your menu bar. Type a project name, click **Start*
 | 1 | Core logic: projects, start/stop, saving to disk, daily/weekly/total hours, with tests | ✅ approved (daily hours added) |
 | 2 | The widget: menu bar icon with a project name box, Start/Stop button, live timer and today/week/all-time totals | ✅ tried out |
 | 2b | Fixes from trying it, plus target hours: set hours per day and/or week for a project and see a progress bar and time left | ✅ approved |
-| 3 | Hours view: every project with today/week/all-time, a day-by-day breakdown of the week, previous/next week buttons | 🔍 ready for review |
-| 4 | Packaging: build a double-clickable `.app`, optional launch at login, install guide | ⏳ |
+| 3 | Hours view: every project with a day-by-day breakdown of the week, week and all-time totals, previous/next week buttons | ✅ approved (combined totals removed) |
+| 4 | Packaging: build a double-clickable `.app`, optional launch at login, install guide | ⏳ next |
 
 ## What it does
 
@@ -27,7 +27,7 @@ A small Mac app that lives in your menu bar. Type a project name, click **Start*
 - While a timer is running, the time shows next to the menu bar icon, and the panel shows the project and a live clock. Press **Stop** (or Return) to stop.
 - Below the button you see how much time that project has had **today**, **this week**, and **all time**. Under an hour it shows minutes and seconds (e.g. `4m 12s`) so you can see it counting.
 - Click **Set targets** to give a project a goal per day and/or per week (type `2`, `1.5`, `1:30` or `1h 30m`; leave empty for none). Today and This week then show a progress bar and how much time is left, or "Target met ✓".
-- Click **All hours…** in the panel for the hours window: every project with its time on each day Sunday–Saturday, its week total (with a progress bar if it has a weekly target) and its all-time total, plus a total row across all projects. Use the arrows to look back at earlier weeks. A day turns green once that day's target is met, and a green dot marks the project that's running.
+- Click **All hours…** in the panel for the hours window: every project with its time on each day Sunday–Saturday, its week total (with a progress bar if it has a weekly target) and its all-time total. Use the arrows to look back at earlier weeks. A day turns green once that day's target is met, and a green dot marks the project that's running.
 - Typing a project name that already exists (ignoring capitals and extra spaces) adds time to that project. A new name creates a new project.
 - Only one timer runs at a time. Starting a different project stops the current one.
 - Every Start and Stop is saved right away to `~/Library/Application Support/ProjectTimeTracker/data.json`. If the Mac restarts while a timer is running, it keeps counting when you reopen the app.

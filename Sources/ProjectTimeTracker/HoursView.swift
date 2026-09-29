@@ -81,14 +81,8 @@ struct HoursView: View {
             .disabled(isCurrentWeek)
             .help("Next week")
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text(weekTitle(report))
-                    .font(.title3.weight(.semibold))
-                Text("Total: \(DurationFormat.compact(report.weekTotal))")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .monospacedDigit()
-            }
+            Text(weekTitle(report))
+                .font(.title3.weight(.semibold))
 
             Spacer()
 
@@ -139,19 +133,6 @@ struct HoursView: View {
                 }
                 .monospacedDigit()
             }
-
-            Divider().gridCellUnsizedAxes(.horizontal)
-
-            GridRow {
-                Text("Total")
-                ForEach(Array(report.dayTotals.enumerated()), id: \.offset) { _, time in
-                    Text(time > 0 ? DurationFormat.compact(time) : "–")
-                }
-                Text(DurationFormat.compact(report.weekTotal))
-                Text("")
-            }
-            .font(.body.weight(.semibold))
-            .monospacedDigit()
         }
     }
 

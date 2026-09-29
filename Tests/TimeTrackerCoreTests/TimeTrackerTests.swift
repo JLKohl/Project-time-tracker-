@@ -219,12 +219,9 @@ final class TimeTrackerTests: XCTestCase {
         XCTAssertEqual(report.days.first, TestClock.date("2026-09-28T00:00:00Z"))
         XCTAssertEqual(report.rows.map(\.summary.project.name), ["B", "A"]) // C had no time this week
         XCTAssertEqual(report.rows[1].days, [3600, 0, 1800, 0, 0, 0, 0])
-        XCTAssertEqual(report.dayTotals, [3 * 3600, 0, 1800, 0, 0, 0, 0])
-        XCTAssertEqual(report.weekTotal, 3.5 * 3600)
 
         let withEmpty = tracker.weekReport(containing: clock.now, includeEmpty: true)
         XCTAssertEqual(withEmpty.rows.map(\.summary.project.name), ["B", "A", "C"])
-        XCTAssertEqual(withEmpty.weekTotal, 3.5 * 3600)
 
         let lastWeek = tracker.weekReport(containing: tracker.date(clock.now, movedByWeeks: -1))
         XCTAssertEqual(lastWeek.rows.map(\.summary.project.name), ["C"])

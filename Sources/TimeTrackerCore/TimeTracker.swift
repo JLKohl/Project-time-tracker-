@@ -185,14 +185,7 @@ public final class TimeTracker {
             }
         let days = (0..<7).compactMap { calendar.date(byAdding: .day, value: $0, to: week.start) }
             .map { dayInterval(containing: $0).start }
-        let dayTotals = days.indices.map { index in rows.reduce(0) { $0 + $1.days[index] } }
-        return WeekReport(
-            week: week,
-            days: days,
-            rows: rows,
-            dayTotals: dayTotals,
-            weekTotal: rows.reduce(0) { $0 + $1.summary.weekTotal }
-        )
+        return WeekReport(week: week, days: days, rows: rows)
     }
 
     // MARK: - Private

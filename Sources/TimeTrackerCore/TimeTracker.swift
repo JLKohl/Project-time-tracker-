@@ -164,6 +164,37 @@ public final class TimeTracker {
             }
     }
 
+    /// The same date moved by whole weeks, e.g. `-1` for the week before.
+    public func date(_ date: Date, movedByWeeks weeks: Int) -> Date {
+        calendar.date(byAdding: .weekOfYear, value: weeks, to: date)
+            ?? date.addingTimeInterval(TimeInterval(weeks) * 7 * 24 * 60 * 60)
+    }
+
+    /// A day-by-day report for the week containing `date`.
+    /// Projects with no time that week are left out unless `includeEmpty` is true
+    /// (a running project is always included).
+    public func weekReport(containing date: Date, includeEmpty: Bool = false) -> WeekReport {
+        let week = weekInterval(containing: date)
+        let rows = summaries(on: date)
+            .filter { includeEmpty || $0.weekTotal > 0 || $0.isRunning }
+            .map { summary in
+                WeekReport.Row(
+                    summary: summary,
+                    days: dailyBreakdown(for: summary.project.id, weekContaining: date).map(\.total)
+                )
+            }
+        let days = (0..<7).compactMap { calendar.date(byAdding: .day, value: $0, to: week.start) }
+            .map { dayInterval(containing: $0).start }
+        let dayTotals = days.indices.map { index in rows.reduce(0) { $0 + $1.days[index] } }
+        return WeekReport(
+            week: week,
+            days: days,
+            rows: rows,
+            dayTotals: dayTotals,
+            weekTotal: rows.reduce(0) { $0 + $1.summary.weekTotal }
+        )
+    }
+
     // MARK: - Private
 
     private func entries(for projectID: UUID) -> [TimeEntry] {

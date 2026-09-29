@@ -108,3 +108,25 @@ public struct DayTotal: Equatable {
     public let day: Date
     public let total: TimeInterval
 }
+
+/// Everything the hours view shows for one week: a row per project with
+/// its time on each day, plus totals across all projects.
+public struct WeekReport: Equatable {
+    public struct Row: Identifiable, Equatable {
+        /// Week total, all-time total and targets for the project.
+        public let summary: ProjectSummary
+        /// Time on each day of the week, in the same order as `WeekReport.days`.
+        public let days: [TimeInterval]
+
+        public var id: UUID { summary.project.id }
+    }
+
+    public let week: DateInterval
+    /// Midnight at the start of each of the seven days.
+    public let days: [Date]
+    public let rows: [Row]
+    /// Time across all projects on each day.
+    public let dayTotals: [TimeInterval]
+    /// Time across all projects for the whole week.
+    public let weekTotal: TimeInterval
+}

@@ -68,6 +68,16 @@ final class TrackerViewModel: ObservableObject {
         isRunning ? stop() : start()
     }
 
+    var calendar: Calendar { tracker.calendar }
+
+    func weekReport(containing date: Date, includeEmpty: Bool) -> WeekReport {
+        tracker.weekReport(containing: date, includeEmpty: includeEmpty)
+    }
+
+    func date(_ date: Date, movedByWeeks weeks: Int) -> Date {
+        tracker.date(date, movedByWeeks: weeks)
+    }
+
     /// Saves targets typed by the user. Empty text clears that target.
     /// Returns `false` (and shows a message) if either box can't be read.
     @discardableResult

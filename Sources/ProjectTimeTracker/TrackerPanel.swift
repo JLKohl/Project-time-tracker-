@@ -51,6 +51,15 @@ struct TrackerPanel: View {
             Divider()
 
             HStack {
+                Button {
+                    HoursWindowController.shared.show(model: model)
+                } label: {
+                    Label("All hours…", systemImage: "calendar")
+                }
+                .buttonStyle(.borderless)
+                .font(.caption)
+                .keyboardShortcut("h")
+
                 Spacer()
                 Button("Quit") { NSApp.terminate(nil) }
                     .keyboardShortcut("q")

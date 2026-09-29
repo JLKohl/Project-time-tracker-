@@ -1,6 +1,8 @@
 # Project Time Tracker
 
-A small Mac app that lives in your menu bar. Type a project name, click **Start**, click **Stop**, and see how many hours you spent on each project this week and in total.
+> **About this project:** This app was written by [Claude Code](https://claude.com/claude-code), Anthropic's AI coding assistant, and directed by [JLKohl](https://github.com/JLKohl). JLKohl came up with the idea, set the requirements, and reviewed and approved each checkpoint. Claude Code wrote the code.
+
+A small Mac app that lives in your menu bar. Type a project name, click **Start**, click **Stop**, and see how many hours you spent on each project today, this week, and in total.
 
 ## Why Swift + SwiftUI
 
